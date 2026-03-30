@@ -1,0 +1,174 @@
+import { useState } from 'react';
+import axiosClient from '../services/axiosClient';
+
+export default function ComplaintCard({ complaint, onUpdate }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isResolving, setIsResolving] = useState(false);
+  const [resolutionNotes, setResolutionNotes] = useState(complaint.resolutionNotes || '');
+  const [showResolutionForm, setShowResolutionForm] = useState(false);
+
+  const handleResolve = async () => {
+    if (!resolutionNotes.trim() && complaint.status === 'Pending') {
+      alert('Please provide resolution notes');
+      return;
+    }
+
+    setIsResolving(true);
+    try {
+      const response = await axiosClient.put(`/complaints/${complaint._id}`, {
+        status: 'Resolved',
+        resolutionNotes,
+      });
+
+      if (response.data.success) {
+        onUpdate(response.data.data);
+        setShowResolutionForm(false);
+        alert('✅ Complaint marked as resolved!');
+      }
+    } catch (error) {
+      alert('❌ Failed to resolve complaint: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setIsResolving(false);
+    }
+  };
+
+  const getSeverityBadgeClass = (severity) => {
+    switch (severity) {
+      case 'Low':
+        return 'badge-low';
+      case 'Medium':
+        return 'badge-medium';
+      case 'High':
+        return 'badge-high';
+      case 'Emergency':
+        return 'badge-emergency';
+      default:
+        return 'badge-low';
+    }
+  };
+
+  const getStatusBadgeClass = (status) => {
+    return status === 'Resolved' ? 'badge-resolved' : 'badge-pending';
+  };
+
+  const formattedDate = new Date(complaint.createdAt).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+
+  return (
+    <div className="card">
+      <div className="flex justify-between items-start">
+        <div className="flex-1">
+          <h3 className="text-xl font-bold text-gray-800 mb-2">{complaint.title}</h3>
+          <div className="flex gap-2 flex-wrap mb-3">
+            <span className="badge bg-blue-100 text-blue-800">{complaint.category}</span>
+            <span className={`badge ${getSeverityBadgeClass(complaint.severity)}`}>
+              {complaint.severity} Severity
+            </span>
+            <span className={`badge ${getStatusBadgeClass(complaint.status)}`}>
+              {complaint.status}
+            </span>
+          </div>
+        </div>
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="text-gray-500 hover:text-gray-700 text-2xl"
+        >
+          {isExpanded ? '▼' : '▶'}
+        </button>
+      </div>
+
+      {/* Collapsed summary */}
+      {!isExpanded && (
+        <div className="mt-3 pt-3 border-t border-gray-200">
+          <p className="text-gray-600 text-sm">📍 {complaint.location}</p>
+          <p className="text-gray-500 text-xs mt-1">📅 {formattedDate}</p>
+        </div>
+      )}
+
+      {/* Expanded details */}
+      {isExpanded && (
+        <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
+          <div>
+            <p className="font-semibold text-gray-700">Description:</p>
+            <p className="text-gray-600 text-sm mt-1">{complaint.description}</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-gray-700">Location:</p>
+            <p className="text-gray-600 text-sm">📍 {complaint.location}</p>
+          </div>
+
+          {complaint.email && (
+            <div>
+              <p className="font-semibold text-gray-700">Citizen Email:</p>
+              <p className="text-gray-600 text-sm">📧 {complaint.email}</p>
+            </div>
+          )}
+
+          <div>
+            <p className="font-semibold text-gray-700">Submitted:</p>
+            <p className="text-gray-600 text-sm">📅 {new Date(complaint.createdAt).toLocaleString()}</p>
+          </div>
+
+          {complaint.resolutionNotes && (
+            <div className="bg-green-50 p-3 rounded">
+              <p className="font-semibold text-green-800">Resolution Notes:</p>
+              <p className="text-green-700 text-sm mt-1">{complaint.resolutionNotes}</p>
+            </div>
+          )}
+
+          {/* Resolution Form */}
+          {complaint.status === 'Pending' && (
+            <div>
+              {!showResolutionForm ? (
+                <button
+                  onClick={() => setShowResolutionForm(true)}
+                  className="btn-success w-full"
+                >
+                  ✓ Mark as Resolved
+                </button>
+              ) : (
+                <div className="space-y-3 bg-yellow-50 p-4 rounded">
+                  <textarea
+                    value={resolutionNotes}
+                    onChange={(e) => setResolutionNotes(e.target.value)}
+                    placeholder="Enter resolution notes (required)"
+                    rows="3"
+                    className="input-field resize-none"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleResolve}
+                      disabled={isResolving}
+                      className="btn-success flex-1 disabled:opacity-50"
+                    >
+                      {isResolving ? 'Resolving...' : 'Confirm Resolution'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowResolutionForm(false);
+                        setResolutionNotes(complaint.resolutionNotes || '');
+                      }}
+                      className="btn-secondary flex-1"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {complaint.status === 'Resolved' && (
+            <div className="bg-green-100 text-green-800 p-3 rounded text-sm text-center font-semibold">
+              ✓ This complaint has been resolved
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
