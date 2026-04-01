@@ -2,17 +2,45 @@ import { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import axiosClient from '../services/axiosClient';
 
+const categories = [
+  'Roads & Potholes',
+  'Drainage & Sewage',
+  'Street Lighting',
+  'Public Buildings',
+  'Electricity Issues',
+  'Water Supply',
+  'Garbage Collection',
+  'Internet / Cable',
+  'Traffic Signals',
+  'Illegal Parking',
+  'Accidents / Hazards',
+  'Fire Safety',
+  'Air Pollution',
+  'Water Pollution',
+  'Noise Pollution',
+  'Tree Damage',
+  'Hospitals',
+  'Schools',
+  'Government Offices',
+  'Public Transport',
+  'Miscellaneous',
+];
+
 export default function TrackStatus() {
   const [complaintId, setComplaintId] = useState('');
   const [complaint, setComplaint] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editData, setEditData] = useState({});
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSearch = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     setComplaint(null);
+    setIsEditMode(false);
 
     if (!complaintId.trim()) {
       setError('Please enter a complaint ID');
@@ -30,6 +58,59 @@ export default function TrackStatus() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditClick = () => {
+    setEditData({
+      description: complaint.description,
+      category: complaint.category,
+      severity: complaint.severity,
+      location: complaint.location,
+    });
+    setIsEditMode(true);
+  };
+
+  const handleEditChange = (field, value) => {
+    setEditData(prev => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleSaveChanges = async () => {
+    if (!editData.description.trim()) {
+      alert('Description is required');
+      return;
+    }
+    if (!editData.location.trim()) {
+      alert('Location is required');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const response = await axiosClient.put(`/complaints/${complaint._id}`, {
+        description: editData.description,
+        category: editData.category,
+        severity: editData.severity,
+        location: editData.location,
+      });
+
+      if (response.data.success) {
+        setComplaint(response.data.data);
+        setIsEditMode(false);
+        alert('✅ Complaint updated successfully!');
+      }
+    } catch (err) {
+      alert('❌ Failed to update complaint: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditMode(false);
+    setEditData({});
   };
 
   const getStatusColor = (status) => {
@@ -124,58 +205,142 @@ export default function TrackStatus() {
                   </div>
                 </div>
 
-                {/* Complaint Details */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Description (Full width) */}
-                  <div className="md:col-span-2">
-                    <h3 className="text-sm font-semibold text-gray-600 mb-2">Description</h3>
-                    <p className="text-gray-900 text-base leading-relaxed">{complaint.description}</p>
-                  </div>
+                {/* Edit/View Toggle */}
+                {!isEditMode && complaint.status === 'Pending' && (
+                  <button
+                    onClick={handleEditClick}
+                    className="w-full bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold py-2 px-4 rounded-lg transition"
+                  >
+                    ✏️ Edit Details
+                  </button>
+                )}
 
-                  {/* Category */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-600 mb-2">Category</h3>
-                    <p className="text-gray-900">{complaint.category}</p>
-                  </div>
+                {isEditMode ? (
+                  // Edit Form
+                  <div className="space-y-4 bg-blue-50 p-6 rounded-lg border border-blue-200">
+                    <h3 className="font-bold text-gray-900 mb-4">📝 Modify Complaint Details</h3>
 
-                  {/* Severity */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-600 mb-2">Severity</h3>
-                    <div className={`inline-block px-4 py-2 rounded-lg border-2 font-semibold text-sm ${getSeverityColor(complaint.severity)}`}>
-                      {complaint.severity}
+                    {/* Description */}
+                    <div>
+                      <label className="block text-gray-700 font-medium mb-2">
+                        Description <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        value={editData.description}
+                        onChange={(e) => handleEditChange('description', e.target.value)}
+                        rows="4"
+                        maxLength="1000"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">{editData.description?.length || 0}/1000 characters</p>
+                    </div>
+
+                    {/* Category */}
+                    <div>
+                      <label className="block text-gray-700 font-medium mb-2">Category</label>
+                      <select
+                        value={editData.category}
+                        onChange={(e) => handleEditChange('category', e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        {categories.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Severity */}
+                    <div>
+                      <label className="block text-gray-700 font-medium mb-2">Severity</label>
+                      <select
+                        value={editData.severity}
+                        onChange={(e) => handleEditChange('severity', e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="Low">🟢 Low</option>
+                        <option value="Medium">🟡 Medium</option>
+                        <option value="High">🔴 High</option>
+                        <option value="Emergency">🚨 Emergency</option>
+                      </select>
+                    </div>
+
+                    {/* Location */}
+                    <div>
+                      <label className="block text-gray-700 font-medium mb-2">
+                        Location <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={editData.location}
+                        onChange={(e) => handleEditChange('location', e.target.value)}
+                        placeholder="Enter location"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    {/* Save/Cancel Buttons */}
+                    <div className="flex gap-3 pt-4 border-t border-blue-300">
+                      <button
+                        onClick={handleSaveChanges}
+                        disabled={isSaving}
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition disabled:opacity-50"
+                      >
+                        {isSaving ? '⏳ Saving...' : '✓ Save Changes'}
+                      </button>
+                      <button
+                        onClick={handleCancel}
+                        className="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg transition"
+                      >
+                        ✕ Cancel
+                      </button>
                     </div>
                   </div>
-
-                  {/* Location */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-600 mb-2">Location</h3>
-                    <p className="text-gray-900">{complaint.location}</p>
-                  </div>
-
-                  {/* Submitted Date */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-600 mb-2">Submitted On</h3>
-                    <p className="text-gray-900">{formatDate(complaint.createdAt)}</p>
-                  </div>
-
-                  {/* Complaint ID */}
-                  <div className="md:col-span-2">
-                    <h3 className="text-sm font-semibold text-gray-600 mb-2">Complaint ID</h3>
-                    <div className="bg-gray-100 px-4 py-2 rounded border border-gray-300 font-mono text-sm break-all text-gray-800">
-                      {complaint._id}
-                    </div>
-                  </div>
-
-                  {/* Resolution Notes (if resolved) */}
-                  {complaint.status === 'Resolved' && complaint.resolutionNotes && (
+                ) : (
+                  // View Mode
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Description (Full width) */}
                     <div className="md:col-span-2">
-                      <h3 className="text-sm font-semibold text-gray-600 mb-2">Resolution Notes</h3>
-                      <div className="bg-green-50 p-4 rounded border border-green-200 text-gray-900">
-                        {complaint.resolutionNotes}
+                      <h3 className="text-sm font-semibold text-gray-600 mb-2">Description</h3>
+                      <p className="text-gray-900 text-base leading-relaxed">{complaint.description}</p>
+                    </div>
+
+                    {/* Category */}
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-600 mb-2">Category</h3>
+                      <p className="text-gray-900">{complaint.category}</p>
+                    </div>
+
+                    {/* Severity */}
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-600 mb-2">Severity</h3>
+                      <div className={`inline-block px-4 py-2 rounded-lg border-2 font-semibold text-sm ${getSeverityColor(complaint.severity)}`}>
+                        {complaint.severity}
                       </div>
                     </div>
-                  )}
-                </div>
+
+                    {/* Location */}
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-600 mb-2">Location</h3>
+                      <p className="text-gray-900">{complaint.location}</p>
+                    </div>
+
+                    {/* Submitted Date */}
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-600 mb-2">Submitted On</h3>
+                      <p className="text-gray-900">{formatDate(complaint.createdAt)}</p>
+                    </div>
+
+                    {/* Resolution Notes (if resolved) */}
+                    {complaint.status === 'Resolved' && complaint.resolutionNotes && (
+                      <div className="md:col-span-2">
+                        <h3 className="text-sm font-semibold text-gray-600 mb-2">Resolution Notes</h3>
+                        <div className="bg-green-50 p-4 rounded border border-green-200 text-gray-900">
+                          {complaint.resolutionNotes}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -193,6 +358,13 @@ export default function TrackStatus() {
               <li>✓ You received it when your complaint was submitted successfully</li>
               <li>✓ It appears in the success message on the Report Issue page</li>
               <li>✓ Copy and paste it here to track your complaint status anytime</li>
+            </ul>
+
+            <h3 className="font-semibold text-gray-900 mb-3 mt-5">✏️ Need to modify your complaint?</h3>
+            <ul className="space-y-2 text-gray-700 text-sm">
+              <li>✓ You can edit your complaint details if it's still pending</li>
+              <li>✓ Click the "Edit Details" button to modify description, category, severity, or location</li>
+              <li>✓ Once your complaint is resolved, editing will not be available</li>
             </ul>
           </div>
         </div>

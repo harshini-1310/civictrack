@@ -66,9 +66,8 @@ export default function AdminDashboard() {
     const matchSeverity = filterSeverity === 'All' || complaint.severity === filterSeverity;
     const matchSearch =
       searchTerm === '' ||
-      complaint.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      complaint.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      complaint.description.toLowerCase().includes(searchTerm.toLowerCase());
+      complaint.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      complaint.location.toLowerCase().includes(searchTerm.toLowerCase());
 
     return matchStatus && matchSeverity && matchSearch;
   });
@@ -247,7 +246,7 @@ export default function AdminDashboard() {
                   <label className="block text-gray-700 font-semibold mb-3 text-sm uppercase tracking-wide">Search Complaints</label>
                   <input
                     type="text"
-                    placeholder="Search by title, location, description..."
+                    placeholder="Search by description, location..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"

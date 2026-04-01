@@ -1,14 +1,12 @@
 const Complaint = require('../models/Complaint');
-const nodemailer = require('nodemailer');
 
-// Configure email transporter
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
-  },
-});
+/**
+ * Generate unique complaint ID in format: CIV-<6 digit random number>
+ */
+const generateComplaintId = () => {
+  const randomNum = Math.floor(Math.random() * 1000000);
+  return `CIV-${String(randomNum).padStart(6, '0')}`;
+};
 
 /**
  * @route   POST /api/complaints
@@ -17,26 +15,47 @@ const transporter = nodemailer.createTransport({
  */
 exports.createComplaint = async (req, res) => {
   try {
-    const { title, description, category, severity, location, email } = req.body;
+    const { description, category, severity, location, email, fullName, phone } = req.body;
 
     // Validate input
-    if (!description || !category || !severity || !location) {
+    if (!description || !category || !severity || !location || !email) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide all required fields',
+        message: 'Please provide all required fields including email',
       });
     }
 
+    const emailTrimmed = typeof email === 'string' ? email.trim() : '';
+    const emailPattern = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+
+    if (!emailTrimmed || !emailPattern.test(emailTrimmed)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address',
+      });
+    }
+
+    // Generate unique complaint ID
+    const complaintId = generateComplaintId();
+
     // Prepare complaint data
     const complaintData = {
-      title: title || description.substring(0, 50) + (description.length > 50 ? '...' : ''), // Auto-generate title if not provided
+      complaintId,
       description,
       category,
       severity,
       location,
-      email: email || null,
+      email: emailTrimmed,
       status: 'Pending',
     };
+
+    // Add optional fields
+    if (fullName) {
+      complaintData.fullName = fullName.trim();
+    }
+    if (phone) {
+      complaintData.phone = phone.trim();
+    }
 
     // Add file information if file was uploaded
     if (req.file) {
@@ -101,12 +120,22 @@ exports.getAllComplaints = async (req, res) => {
 
 /**
  * @route   GET /api/complaints/:id
- * @desc    Get a single complaint
- * @access  Private (Admin only)
+ * @desc    Get a single complaint by ID (complaintId for tracking or _id for admin)
+ * @access  Public (for tracking) / Private (for admin)
  */
 exports.getComplaintById = async (req, res) => {
   try {
-    const complaint = await Complaint.findById(req.params.id.trim());
+    const id = req.params.id.trim();
+    let complaint;
+
+    // Check if ID looks like a complaint ID (CIV-XXXXXX) for public tracking
+    if (id.startsWith('CIV-')) {
+      // Search by complaintId for public tracking
+      complaint = await Complaint.findOne({ complaintId: id });
+    } else {
+      // Search by MongoDB _id for admin operations
+      complaint = await Complaint.findById(id);
+    }
 
     if (!complaint) {
       return res.status(404).json({
@@ -160,38 +189,7 @@ exports.updateComplaintStatus = async (req, res) => {
 
     await complaint.save();
 
-    // Send email notification if complaint is resolved and email is available
-    if (status === 'Resolved' && complaint.email) {
-      try {
-        const mailOptions = {
-          from: process.env.EMAIL_USER,
-          to: complaint.email,
-          subject: 'Your Complaint Has Been Resolved',
-          html: `
-            <h2>Dear Citizen,</h2>
-            <p>We are pleased to inform you that your complaint has been resolved.</p>
-            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0;">
-              <h3>${complaint.title}</h3>
-              <p><strong>Category:</strong> ${complaint.category}</p>
-              <p><strong>Severity:</strong> ${complaint.severity}</p>
-              <p><strong>Location:</strong> ${complaint.location}</p>
-              ${
-                complaint.resolutionNotes
-                  ? `<p><strong>Resolution Notes:</strong> ${complaint.resolutionNotes}</p>`
-                  : ''
-              }
-            </div>
-            <p>Thank you for reporting this issue. Your feedback helps us improve our services.</p>
-            <p>Best regards,<br/>CivicTrack Administration</p>
-          `,
-        };
-
-        await transporter.sendMail(mailOptions);
-      } catch (emailError) {
-        console.error('Error sending email:', emailError);
-        // Don't fail the request if email fails
-      }
-    }
+    // Email notifications are handled from frontend via EmailJS; backend does not send email directly.
 
     res.status(200).json({
       success: true,

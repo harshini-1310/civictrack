@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axiosClient from '../services/axiosClient';
+import { sendEmail } from '../services/emailjsClient';
 
 export default function ComplaintCard({ complaint, onUpdate }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -24,6 +25,21 @@ export default function ComplaintCard({ complaint, onUpdate }) {
         onUpdate(response.data.data);
         setShowResolutionForm(false);
         alert('✅ Complaint marked as resolved!');
+
+        if (!complaint.email) {
+          console.warn('handleResolve: no email present on complaint, skipping EmailJS sendOrder');
+        } else {
+          const emailResult = await sendEmail(complaint.email, complaint.description || 'Resolved complaint');
+          if (emailResult.success) {
+            console.log('EmailJS notification sent successfully', { toEmail: complaint.email });
+          } else {
+            console.error('EmailJS notification had an issue', {
+              toEmail: complaint.email,
+              issue: complaint.description || 'Resolved complaint',
+              message: emailResult.message,
+            });
+          }
+        }
       }
     } catch (error) {
       alert('❌ Failed to resolve complaint: ' + (error.response?.data?.message || error.message));
@@ -61,9 +77,10 @@ export default function ComplaintCard({ complaint, onUpdate }) {
     <div className="card">
       <div className="flex justify-between items-start">
         <div className="flex-1">
-          <h3 className="text-xl font-bold text-gray-800 mb-2">{complaint.title}</h3>
-          <div className="flex gap-2 flex-wrap mb-3">
-            <span className="badge bg-blue-100 text-blue-800">{complaint.category}</span>
+          <h3 className="text-lg font-bold text-gray-900 mb-3">
+            📋 {complaint.category}
+          </h3>
+          <div className="flex gap-2 flex-wrap mt-3">
             <span className={`badge ${getSeverityBadgeClass(complaint.severity)}`}>
               {complaint.severity} Severity
             </span>
@@ -91,11 +108,6 @@ export default function ComplaintCard({ complaint, onUpdate }) {
       {/* Expanded details */}
       {isExpanded && (
         <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
-          <div>
-            <p className="font-semibold text-gray-700">Description:</p>
-            <p className="text-gray-600 text-sm mt-1">{complaint.description}</p>
-          </div>
-
           <div>
             <p className="font-semibold text-gray-700">Location:</p>
             <p className="text-gray-600 text-sm">📍 {complaint.location}</p>

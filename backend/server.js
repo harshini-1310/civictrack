@@ -2,6 +2,10 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const dns = require('node:dns/promises');
+const path = require('path');
+
+dns.setServers(['1.1.1.1', '8.8.8.8']);
 
 // Import routes
 const complaintRoutes = require('./routes/complaintRoutes');
@@ -20,9 +24,26 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Connect to MongoDB
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Validate required environment variables
+if (!process.env.MONGODB_URI) {
+  console.error('✗ Missing environment variable: MONGODB_URI');
+  process.exit(1);
+}
+
+if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+  console.warn('⚠️ EMAIL_USER or EMAIL_PASSWORD is not set. Email notifications will fail.');
+}
+
+// Connect to MongoDB (Atlas).
+// Ensure MONGODB_URI is set in backend/.env, example:
+// mongodb+srv://<username>:<password>@cluster0.p0bcu2d.mongodb.net/civictrack?retryWrites=true&w=majority
+const mongodbUri = process.env.MONGODB_URI || 'mongodb+srv://<username>:<password>@cluster0.p0bcu2d.mongodb.net/civictrack?retryWrites=true&w=majority';
+
 mongoose
-  .connect(process.env.MONGODB_URI)
+  .connect(mongodbUri)
   .then(() => {
     console.log('✓ MongoDB connected successfully');
   })

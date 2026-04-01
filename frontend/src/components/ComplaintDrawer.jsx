@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import axiosClient from '../services/axiosClient';
+import { sendComplaintResolution } from '../services/emailjsClient';
 
 export default function ComplaintDrawer({ complaint, isOpen, onClose, onUpdate }) {
   const [isResolving, setIsResolving] = useState(false);
   const [resolutionNotes, setResolutionNotes] = useState(complaint?.resolutionNotes || '');
   const [showResolutionForm, setShowResolutionForm] = useState(false);
+  const [emailError, setEmailError] = useState(null);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const handleResolve = async () => {
     if (!resolutionNotes.trim()) {
@@ -13,23 +16,114 @@ export default function ComplaintDrawer({ complaint, isOpen, onClose, onUpdate }
       return;
     }
 
-    setIsResolving(true);
+    setIsSendingEmail(true);
+    setEmailError(null);
+
     try {
+      // Step 1: Send resolution email FIRST
+      console.info('📧 Step 1: Attempting to send resolution email...');
+      
+      if (!complaint.email) {
+        console.warn('⚠️ Missing complaint email, cannot send resolution email');
+        throw new Error('Complaint email address is missing');
+      }
+
+      const emailResult = await sendComplaintResolution({
+        to_email: complaint.email,
+        complaintId: complaint.complaintId || complaint._id,
+        issue: complaint.description || 'Your complaint',
+        resolution: resolutionNotes,
+      });
+
+      if (!emailResult.success) {
+        console.error('❌ Resolution email failed:', emailResult.message);
+        setEmailError(emailResult.message);
+        throw new Error(emailResult.message);
+      }
+
+      console.info('✅ Step 1 Complete: Email sent successfully');
+
+      // Step 2: Only if email succeeds, update complaint status
+      console.info('📋 Step 2: Updating complaint status to Resolved...');
+      setIsResolving(true);
+
       const response = await axiosClient.put(`/complaints/${complaint._id}`, {
         status: 'Resolved',
         resolutionNotes,
       });
 
       if (response.data.success) {
-        onUpdate(response.data.data);
+        console.info('✅ Step 2 Complete: Complaint marked as resolved');
+        const updatedComplaint = response.data.data;
+        
+        onUpdate(updatedComplaint);
         setShowResolutionForm(false);
+        setEmailError(null);
         onClose();
-        alert('✅ Complaint marked as resolved!');
+        
+        alert('✅ Complaint resolved and email sent successfully!');
       }
     } catch (error) {
-      alert('❌ Failed to resolve complaint: ' + (error.response?.data?.message || error.message));
-    } finally {
+      console.error('❌ Resolution process failed:', error);
+      setEmailError(error?.message || 'Failed to resolve complaint');
       setIsResolving(false);
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
+  const handleRetryEmail = async () => {
+    setIsSendingEmail(true);
+    setEmailError(null);
+
+    try {
+      console.info('🔄 Retrying email send...');
+      
+      if (!complaint.email) {
+        throw new Error('Complaint email address is missing');
+      }
+
+      const emailResult = await sendComplaintResolution({
+        to_email: complaint.email,
+        complaintId: complaint.complaintId || complaint._id,
+        issue: complaint.description || 'Your complaint',
+        resolution: resolutionNotes,
+      });
+
+      if (!emailResult.success) {
+        console.error('❌ Retry email failed:', emailResult.message);
+        setEmailError(emailResult.message);
+        throw new Error(emailResult.message);
+      }
+
+      console.info('✅ Retry Complete: Email sent successfully');
+
+      // Now update the complaint status
+      console.info('📋 Updating complaint status after successful retry...');
+      setIsResolving(true);
+
+      const response = await axiosClient.put(`/complaints/${complaint._id}`, {
+        status: 'Resolved',
+        resolutionNotes,
+      });
+
+      if (response.data.success) {
+        console.info('✅ Complaint marked as resolved after retry');
+        const updatedComplaint = response.data.data;
+        
+        onUpdate(updatedComplaint);
+        setShowResolutionForm(false);
+        setEmailError(null);
+        onClose();
+        
+        alert('✅ Complaint resolved and email sent successfully!');
+      }
+    } catch (error) {
+      console.error('❌ Retry failed:', error);
+      setEmailError(error?.message || 'Retry failed');
+      setIsResolving(false);
+    } finally {
+      setIsSendingEmail(false);
     }
   };
 
@@ -99,9 +193,8 @@ export default function ComplaintDrawer({ complaint, isOpen, onClose, onUpdate }
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Title */}
           <div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">{complaint.title}</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">{complaint.description?.slice(0, 80)}{complaint.description?.length > 80 ? '...' : ''}</h3>
           </div>
 
           {/* Status Badges */}
@@ -152,6 +245,25 @@ export default function ComplaintDrawer({ complaint, isOpen, onClose, onUpdate }
             <p className="text-gray-700 bg-gray-50 p-4 rounded-lg">{formattedDate}</p>
           </div>
 
+          {/* Attachment */}
+          {complaint.attachment && complaint.attachment.filename && (
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-2">📎 Attachment</h4>
+              <a
+                href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/uploads/${complaint.attachment.filename}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                download={complaint.attachment.filename}
+                className="inline-block w-full text-center bg-blue-100 text-blue-800 hover:bg-blue-200 px-4 py-3 rounded-lg font-semibold transition"
+              >
+                📥 Download: {complaint.attachment.filename}
+              </a>
+              <p className="text-xs text-gray-500 mt-2">
+                Size: {(complaint.attachment.size / 1024).toFixed(2)} KB
+              </p>
+            </div>
+          )}
+
           {/* Resolution Notes (if resolved) */}
           {complaint.resolutionNotes && complaint.status === 'Resolved' && (
             <div>
@@ -163,6 +275,21 @@ export default function ComplaintDrawer({ complaint, isOpen, onClose, onUpdate }
           {/* Resolve Form */}
           {complaint.status === 'Pending' && (
             <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+              {/* Email Error Message */}
+              {emailError && (
+                <div className="mb-4 bg-red-50 border border-red-300 rounded-lg p-4">
+                  <p className="text-red-700 font-semibold mb-3">❌ {emailError}</p>
+                  <p className="text-red-600 text-sm mb-3">The complaint will NOT be marked as resolved until the email is sent successfully.</p>
+                  <button
+                    onClick={handleRetryEmail}
+                    disabled={isSendingEmail}
+                    className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSendingEmail ? '⏳ Retrying Email...' : '🔄 Retry Email'}
+                  </button>
+                </div>
+              )}
+
               {!showResolutionForm ? (
                 <button
                   onClick={() => setShowResolutionForm(true)}
@@ -185,17 +312,19 @@ export default function ComplaintDrawer({ complaint, isOpen, onClose, onUpdate }
                   <div className="flex gap-2">
                     <button
                       onClick={handleResolve}
-                      disabled={isResolving}
+                      disabled={isSendingEmail || isResolving}
                       className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isResolving ? '⏳ Resolving...' : '✓ Confirm Resolution'}
+                      {isSendingEmail ? '📧 Sending Email...' : isResolving ? '⏳ Resolving...' : '✓ Confirm Resolution'}
                     </button>
                     <button
                       onClick={() => {
                         setShowResolutionForm(false);
                         setResolutionNotes(complaint.resolutionNotes || '');
+                        setEmailError(null);
                       }}
-                      className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-3 px-4 rounded-lg transition"
+                      disabled={isSendingEmail || isResolving}
+                      className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Cancel
                     </button>

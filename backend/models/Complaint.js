@@ -2,12 +2,6 @@ const mongoose = require('mongoose');
 
 const complaintSchema = new mongoose.Schema(
   {
-    title: {
-      type: String,
-      trim: true,
-      maxlength: [100, 'Title cannot exceed 100 characters'],
-      default: null, // Auto-generated from description if not provided
-    },
     description: {
       type: String,
       required: [true, 'Please provide a complaint description'],
@@ -51,13 +45,28 @@ const complaintSchema = new mongoose.Schema(
       required: [true, 'Please provide location'],
       trim: true,
     },
+    complaintId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    fullName: {
+      type: String,
+      trim: true,
+    },
+    phone: {
+      type: String,
+      trim: true,
+    },
     email: {
       type: String,
+      required: [true, 'Please provide a valid email address'],
+      trim: true,
+      lowercase: true,
       match: [
         /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
         'Please provide a valid email',
       ],
-      sparse: true,
     },
     status: {
       type: String,

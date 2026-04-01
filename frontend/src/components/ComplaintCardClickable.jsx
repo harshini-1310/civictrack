@@ -52,13 +52,10 @@ export default function ComplaintCardClickable({ complaint, onClick }) {
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          {/* Title and Category */}
-          <div className="flex items-center gap-3 mb-4">
-            <div>
-              <h3 className="text-lg font-bold text-gray-900">{complaint.title}</h3>
-              <p className="text-sm text-gray-600 mt-1">📋 {complaint.category}</p>
-            </div>
-          </div>
+          {/* Category as Main Highlight */}
+          <h3 className="text-xl font-bold text-gray-900 mb-4">
+            📋 {complaint.category}
+          </h3>
 
           {/* Badges */}
           <div className="flex flex-wrap gap-2 mb-4">
@@ -68,10 +65,15 @@ export default function ComplaintCardClickable({ complaint, onClick }) {
             <span className={`${statusColor.badge} px-3 py-1 rounded-full text-sm font-semibold`}>
               {complaint.status === 'Resolved' ? '✓ Resolved' : '⏳ Pending'}
             </span>
+            {complaint.attachment && (
+              <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
+                📎 Attachment
+              </span>
+            )}
           </div>
 
           {/* Description preview */}
-          <p className="text-gray-600 text-sm line-clamp-2 mb-4">{complaint.description}</p>
+          <p className="text-gray-700 text-sm line-clamp-2 mb-4 font-medium">{complaint.description}</p>
 
           {/* Location and Date */}
           <div className="flex gap-4 text-xs text-gray-500 mt-2">

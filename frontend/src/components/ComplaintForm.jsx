@@ -1,14 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import axiosClient from '../services/axiosClient';
+import { sendComplaintSubmission } from '../services/emailjsClient';
+
+const categories = ['Roads', 'Water', 'Electricity', 'Sanitation', 'Other'];
+
+const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const validatePhone = (phone) => /^\d{10}$/.test(phone);
 
 export default function ComplaintForm() {
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    category: '',
-    severity: '',
-    location: '',
+    fullName: '',
     email: '',
+    phone: '',
+    category: '',
+    location: '',
+    description: '',
+    image: null,
   });
 
   const [loading, setLoading] = useState(false);
@@ -19,6 +26,8 @@ export default function ComplaintForm() {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [fileError, setFileError] = useState('');
   const [complaintId, setComplaintId] = useState('');
+  const [emailMessage, setEmailMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -110,62 +119,121 @@ export default function ComplaintForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Prevent duplicate submissions
+    if (isSubmitting || loading) {
+      return;
+    }
+
+    setIsSubmitting(true);
     setLoading(true);
     setError('');
     setMessage('');
+    setEmailMessage('');
 
     try {
       // Validate required fields - trim whitespace
-      if (!formData.description.trim() || !formData.category.trim() || !formData.severity.trim() || !formData.location.trim()) {
-        setError('Please fill in all required fields');
+      if (!formData.description.trim() || !formData.category.trim() || !formData.severity?.trim?.() || !formData.location.trim() || !formData.email.trim()) {
+        setError('Please fill in all required fields including email');
+        setIsSubmitting(false);
+        setLoading(false);
+        return;
+      }
+
+      const emailPattern = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+      if (!emailPattern.test(formData.email.trim())) {
+        setError('Please enter a valid email address');
+        setIsSubmitting(false);
         setLoading(false);
         return;
       }
 
       // Create FormData to handle file upload
       const submitData = new FormData();
-      submitData.append('title', formData.title);
+      
       submitData.append('description', formData.description);
       submitData.append('category', formData.category);
       submitData.append('severity', formData.severity);
       submitData.append('location', formData.location);
       submitData.append('email', formData.email);
+      
+      // Add fullName and phone if provided
+      if (formData.fullName?.trim?.()) {
+        submitData.append('fullName', formData.fullName.trim());
+      }
+      if (formData.phone?.trim?.()) {
+        submitData.append('phone', formData.phone.trim());
+      }
 
       // Append file if present
       if (uploadedFile) {
         submitData.append('file', uploadedFile);
       }
 
-      // Use axios with FormData (Content-Type will be set automatically)
-      const response = await axiosClient.post('/complaints', submitData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      // STEP 1: Submit complaint to backend API
+      console.info('Submitting complaint to backend...');
+      const response = await axiosClient.post('/complaints', submitData);
 
       if (response.data.success) {
-        const complaintIdValue = response.data.data._id;
+        // Extract complaint data from backend response
+        const complaint = response.data.data;
+        const complaintIdValue = complaint.complaintId || complaint._id;
+        const userFullName = formData.fullName?.trim?.() || 'Valued Citizen';
+
         setComplaintId(complaintIdValue);
         setMessage(`✅ Complaint submitted successfully! Your complaint ID: ${complaintIdValue}`);
+
+        // STEP 2: Send confirmation email using EmailJS
+        console.info('Sending complaint submission email...', {
+          name: userFullName,
+          email: formData.email,
+          complaintId: complaintIdValue,
+          category: formData.category,
+        });
+
+        const emailResult = await sendComplaintSubmission({
+          to_email: formData.email,
+          complaintId: complaintIdValue,
+          name: userFullName,
+          category: formData.category,
+        });
+
+        // Handle email result
+        if (emailResult.success) {
+          console.info('✅ Submission email sent successfully');
+          setEmailMessage('📧 Confirmation email sent successfully');
+        } else {
+          console.warn('⚠️ Email sending failed, but complaint was submitted:', emailResult.message);
+          setEmailMessage(`📧 Note: Confirmation email could not be sent (${emailResult.message}). Your complaint has been registered successfully.`);
+        }
+
+        // Reset form
         setFormData({
-          title: '',
+          fullName: '',
+          email: '',
+          phone: '',
           description: '',
           category: '',
           severity: '',
           location: '',
-          email: '',
+          image: null,
         });
         setUploadedFile(null);
 
-        // Clear message after 10 seconds
+        // Clear messages after 10 seconds
         setTimeout(() => {
           setMessage('');
           setComplaintId('');
+          setEmailMessage('');
         }, 10000);
+      } else {
+        setError(response.data.message || 'Failed to submit complaint. Please try again.');
       }
     } catch (err) {
+      console.error('Complaint submission error:', err);
       setError(err.response?.data?.message || 'Failed to submit complaint. Please try again.');
     } finally {
+      setIsSubmitting(false);
       setLoading(false);
     }
   };
@@ -193,6 +261,11 @@ export default function ComplaintForm() {
               >
                 Copy ID
               </button>
+            </div>
+          )}
+          {emailMessage && (
+            <div className="text-sm bg-white p-3 rounded border border-green-300">
+              {emailMessage}
             </div>
           )}
           <p className="text-sm text-green-700 italic">
@@ -376,17 +449,54 @@ export default function ComplaintForm() {
           <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">
             📧 Contact Information
           </h3>
-          <label className="block text-gray-700 font-medium mb-2">
-            Email <span className="text-gray-500 font-normal text-sm">(optional - receive updates)</span>
-          </label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="your.email@example.com"
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-          />
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Full Name */}
+            <div>
+              <label className="block text-gray-700 font-medium mb-2">
+                Full Name <span className="text-gray-500 font-normal text-sm">(optional)</span>
+              </label>
+              <input
+                type="text"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleChange}
+                placeholder="Your full name"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+            </div>
+
+            {/* Phone */}
+            <div>
+              <label className="block text-gray-700 font-medium mb-2">
+                Phone <span className="text-gray-500 font-normal text-sm">(optional)</span>
+              </label>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                placeholder="10-digit phone number"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Email - Full Width */}
+          <div className="mt-6">
+            <label className="block text-gray-700 font-medium mb-2">
+              Email <span className="text-red-500">*</span> <span className="text-gray-500 font-normal text-sm">(required - receive updates)</span>
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="your.email@example.com"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              required
+            />
+          </div>
         </div>
 
         {/* Submit Button */}
