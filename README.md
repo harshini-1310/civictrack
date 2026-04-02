@@ -1,4 +1,4 @@
-# 🏛️ Citizen Connect - Admin Registration System
+# 🏛️ CivicTrack - Admin Registration System
 
 **Full-Stack Web Application for Public Issue Reporting**
 
@@ -110,7 +110,9 @@ Open: http://localhost:5176
 - **MongoDB** with Mongoose 9.3.3 ODM
 - **JWT** 9.0.0 token authentication
 - **Bcryptjs** 2.4.3 password hashing
-- **Nodemailer** 6.9.0 email service
+
+### Frontend Email Service
+- **EmailJS** for automated email notifications
 
 ### Database
 - **MongoDB** local (`localhost:27017`) or MongoDB Atlas
@@ -220,11 +222,7 @@ citizen-connect/
      ```
      JWT_SECRET=your-secret-key
      ```
-   - Add Gmail credentials (for email notifications):
-     ```
-     EMAIL_USER=your-email@gmail.com
-     EMAIL_PASSWORD=your-app-password
-     ```
+   - EmailJS is configured on the frontend (no backend email config needed)
    - Set PORT (default 5000):
      ```
      PORT=5000
@@ -260,6 +258,13 @@ citizen-connect/
    - Update API URL if backend runs on different port:
      ```
      VITE_API_URL=http://localhost:5000/api
+     ```
+   - Add EmailJS credentials (for email notifications):
+     ```
+     VITE_EMAILJS_SERVICE_ID=service_xxxxx
+     VITE_EMAILJS_PUBLIC_KEY=your_public_key
+     VITE_EMAILJS_TEMPLATE_SUBMITTED=template_xxxxx
+     VITE_EMAILJS_TEMPLATE_RESOLVED=template_yyyyy
      ```
 
 4. **Start the development server:**
@@ -412,25 +417,39 @@ Response:
    - Check severity distribution
    - Use filters/search for quick access
 
-## 📧 Email Configuration
+## 📧 Email Configuration with EmailJS
 
 To enable email notifications:
 
-1. **Gmail Setup**:
-   - Go to: https://myaccount.google.com/apppasswords
-   - Select "Mail" and "Windows Computer"
-   - Generate app password
-   - Copy the 16-character password
+1. **Register with EmailJS**:
+   - Go to: https://www.emailjs.com/
+   - Click "Sign Up Free"
+   - Complete signup and verify your email
 
-2. **Update .env**:
-   ```
-   EMAIL_USER=your-email@gmail.com
-   EMAIL_PASSWORD=xxxx xxxx xxxx xxxx
-   ```
+2. **Set Up Email Service**:
+   - Login to EmailJS dashboard
+   - Go to "Email Services" → "Add New Service"
+   - Select your email provider (Gmail, Outlook, etc.)
+   - Connect your email account
+   - Copy your **Service ID** (format: `service_xxxxx`)
 
-3. **Alternative Email Providers**:
-   - Update nodemail service in `controllers/complaintController.js`
-   - Use your provider's SMTP settings
+3. **Create Email Templates**:
+   - Go to "Email Templates" → "Create New Template"
+   - Create two templates: one for complaint submission, one for resolution
+   - Use variables like `{{name}}`, `{{complaint_id}}`, `{{email}}`
+   - Copy template IDs (format: `template_xxxxx`)
+
+4. **Get API Credentials**:
+   - Go to "Account" → "API Keys"
+   - Copy your **Public Key**
+
+5. **Update Frontend .env**:
+   ```
+   VITE_EMAILJS_SERVICE_ID=service_xxxxx
+   VITE_EMAILJS_PUBLIC_KEY=your_public_key
+   VITE_EMAILJS_TEMPLATE_SUBMITTED=template_xxxxx
+   VITE_EMAILJS_TEMPLATE_RESOLVED=template_yyyyy
+   ```
 
 ## 🔒 Security Features
 
@@ -460,9 +479,11 @@ Solution: Check backend CORS configuration
 ### Email Not Sending
 ```
 Solution:
-1. Check EMAIL_USER and EMAIL_PASSWORD in .env
-2. If Gmail: Ensure app password is used (not account password)
-3. Check spam folder
+1. Check all EmailJS environment variables in frontend/.env
+2. Verify Service ID and Template IDs are correct
+3. Ensure Public Key is valid in EmailJS dashboard
+4. Check spam folder for received emails
+5. Review EmailJS dashboard for failed email logs
 ```
 
 ### JWT Token Errors
@@ -617,22 +638,24 @@ MONGODB_URI=mongodb://localhost:27017/citizen-connect
 # JWT Secret (change in production)
 JWT_SECRET=your_jwt_secret_key_change_this_in_production
 
-# Admin Secret Code (NEW - change in production!)
+# Admin Secret Code (change in production!)
 ADMIN_SECRET_CODE=citizen_admin_2024
-
-# Email Configuration (Gmail SMTP)
-EMAIL_USER=your-email@gmail.com
-EMAIL_PASSWORD=your-app-specific-password
 
 # Server Configuration
 PORT=5000
 NODE_ENV=development
 ```
 
+**Note:** Email notifications are handled frontend-side using EmailJS, so no email configuration needed on backend.
+
 ### Frontend Configuration (frontend/.env)
 
 ```env
 VITE_API_URL=http://localhost:5000/api
+VITE_EMAILJS_SERVICE_ID=service_xxxxx
+VITE_EMAILJS_PUBLIC_KEY=your_public_key
+VITE_EMAILJS_TEMPLATE_SUBMITTED=template_submitted_xxxxx
+VITE_EMAILJS_TEMPLATE_RESOLVED=template_resolved_xxxxx
 ```
 
 ---
@@ -762,7 +785,7 @@ This project is open source and available under the MIT License.
 | Backend won't connect | Verify MongoDB running, check `.env` |
 | Admin code rejected | Check code in `.env`, restart backend |
 | Frontend errors | Clear cache, `npm install`, restart dev server |
-| Email not working | Verify Gmail app password, check `.env` |
+| Email not working | Verify EmailJS config, check frontend `.env` vars, review EmailJS dashboard |
 
 ### Advanced Help
 
@@ -779,7 +802,7 @@ See **SETUP_AND_DEPLOYMENT.md** → Troubleshooting section for detailed solutio
 | Admin Registration | ✅ Complete | Secure with admin code |
 | Admin Dashboard | ✅ Complete | View, filter, resolve |
 | JWT Authentication | ✅ Complete | Secure token-based auth |
-| Email Notifications | ✅ Complete | Nodemailer integration |
+| Email Notifications | ✅ Complete | EmailJS integration |
 | Documentation | ✅ Complete | 7 comprehensive guides |
 | Security | ✅ Complete | Bcrypt + JWT + Validation |
 | Deployment | ✅ Ready | Production-ready code |
