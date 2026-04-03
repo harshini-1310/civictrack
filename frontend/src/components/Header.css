@@ -1,0 +1,297 @@
+.app-navbar {
+  --nav-bg: var(--ad-surface, rgba(255, 255, 255, 0.95));
+  --nav-border: var(--ad-border, #e2e8f0);
+  --nav-text: var(--ad-text, #0f172a);
+  --nav-muted: var(--ad-text-muted, #475569);
+  --nav-subtle: var(--ad-text-subtle, #64748b);
+  --nav-primary: var(--ad-primary, #3b82f6);
+  --nav-primary-hover: var(--ad-primary-hover, #2563eb);
+  --nav-soft: var(--ad-surface-soft, #f1f5f9);
+
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: var(--nav-bg);
+  border-bottom: 1px solid var(--nav-border);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.dark .app-navbar,
+[data-theme='dark'] .app-navbar {
+  --nav-bg: rgba(15, 23, 42, 0.95);
+  --nav-border: #1e293b;
+  --nav-text: #e2e8f0;
+  --nav-muted: #cbd5e1;
+  --nav-subtle: #94a3b8;
+  --nav-soft: #1e293b;
+  --nav-primary: #60a5fa;
+  --nav-primary-hover: #3b82f6;
+}
+
+.app-navbar.is-scrolled {
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+}
+
+.app-navbar.is-top {
+  background: transparent;
+  border-bottom-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+  --nav-text: #f8fafc;
+  --nav-muted: rgba(248, 250, 252, 0.88);
+  --nav-subtle: rgba(226, 232, 240, 0.8);
+  --nav-soft: rgba(255, 255, 255, 0.12);
+  --nav-border: rgba(255, 255, 255, 0.32);
+}
+
+.app-navbar.is-top .app-nav-link.active {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.app-navbar.is-top .app-nav-mobile {
+  background: rgba(15, 23, 42, 0.96);
+  border-top-color: rgba(148, 163, 184, 0.35);
+}
+
+.app-navbar.is-top .app-nav-mobile-link {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #e2e8f0;
+}
+
+.app-navbar.is-top .app-nav-mobile-link.active {
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #ffffff;
+}
+
+.app-navbar-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  min-height: 64px;
+  padding: 0 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.app-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+  color: var(--nav-text);
+  min-width: 0;
+}
+
+.app-brand-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #fff;
+  background: var(--nav-primary);
+  flex-shrink: 0;
+}
+
+.app-brand-text {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1.05;
+}
+
+.app-brand-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--nav-text);
+}
+
+.app-brand-subtitle {
+  font-size: 0.67rem;
+  letter-spacing: 0.04em;
+  color: var(--nav-subtle);
+  text-transform: uppercase;
+}
+
+.app-nav-desktop {
+  display: none;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.app-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  text-decoration: none;
+  color: var(--nav-muted);
+  border: 1px solid transparent;
+  border-radius: 0.55rem;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.app-nav-link:hover {
+  background: var(--nav-soft);
+  color: var(--nav-text);
+}
+
+.app-nav-link.active {
+  color: var(--nav-primary);
+  border-color: color-mix(in srgb, var(--nav-primary) 24%, var(--nav-border));
+  background: color-mix(in srgb, var(--nav-primary) 10%, transparent);
+}
+
+.app-nav-divider {
+  width: 1px;
+  height: 1.65rem;
+  background: var(--nav-border);
+  margin: 0 0.25rem;
+}
+
+.app-admin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: var(--nav-soft);
+  border: 1px solid var(--nav-border);
+  border-radius: 0.6rem;
+  padding: 0.26rem 0.45rem;
+  color: var(--nav-text);
+}
+
+.app-admin-avatar {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 0.45rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--nav-primary);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.app-admin-name {
+  max-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--nav-text);
+}
+
+.app-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: none;
+  border-radius: 0.55rem;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.app-nav-btn-danger {
+  background: #ef4444;
+  color: #fff;
+}
+
+.app-nav-btn-danger:hover {
+  background: #dc2626;
+}
+
+.app-nav-toggle {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 0.55rem;
+  border: 1px solid var(--nav-border);
+  background: var(--nav-soft);
+  color: var(--nav-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.app-nav-mobile {
+  border-top: 1px solid var(--nav-border);
+  background: var(--nav-bg);
+}
+
+.app-nav-mobile-list {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0.55rem 1rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.app-nav-mobile-link {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-decoration: none;
+  border: 1px solid var(--nav-border);
+  border-radius: 0.65rem;
+  padding: 0.55rem 0.7rem;
+  color: var(--nav-text);
+  background: var(--nav-soft);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.app-nav-mobile-link.active {
+  border-color: color-mix(in srgb, var(--nav-primary) 24%, var(--nav-border));
+  color: var(--nav-primary);
+}
+
+.app-nav-mobile-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.app-nav-mobile-divider {
+  height: 1px;
+  background: var(--nav-border);
+  margin: 0.2rem 0;
+}
+
+.app-admin-chip-mobile {
+  align-self: flex-start;
+}
+
+.app-nav-mobile-logout {
+  border-color: #fca5a5;
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+@media (min-width: 1024px) {
+  .app-nav-desktop {
+    display: inline-flex;
+  }
+
+  .app-nav-toggle,
+  .app-nav-mobile {
+    display: none;
+  }
+}

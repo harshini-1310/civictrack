@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosClient from '../services/axiosClient';
+import './AdminLogin.css';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -12,6 +13,8 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showRegister, setShowRegister] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showAdminCode, setShowAdminCode] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -63,122 +66,143 @@ export default function AdminLogin() {
 
   const handleSubmit = showRegister ? handleRegister : handleLogin;
 
+  const handleGoBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate('/');
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center py-12">
-      <div className="container mx-auto px-4 max-w-md">
-        <div className="card">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">
-              {showRegister ? '🔐 Create Admin Account' : '🔐 Admin Login'}
-            </h2>
-            <p className="text-gray-600">
-              {showRegister
-                ? 'Create a new admin account'
-                : 'Access the administration dashboard'}
-            </p>
-          </div>
+    <div className="admin-login-modern">
+      <div className="admin-login-shell">
+        <div className="admin-login-card">
+          <button
+            type="button"
+            onClick={handleGoBack}
+            className="admin-login-back"
+          >
+            Go Back
+          </button>
+
+          <h1 className="admin-login-title">
+            {showRegister ? 'Create Account' : 'Admin Login'}
+          </h1>
+          <p className="admin-login-subtitle">
+            {showRegister ? 'Register a new admin account' : 'Sign in to access the dashboard'}
+          </p>
 
           {error && (
-            <div className="mb-4 p-4 bg-red-100 text-red-800 rounded-lg text-sm">
-              ❌ {error}
+            <div className="admin-login-error">
+              {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Username */}
-            <div>
-              <label className="block text-gray-700 font-semibold mb-2">Username</label>
+          <form onSubmit={handleSubmit} className="admin-login-form">
+            <div className="admin-login-group">
+              <label htmlFor="username" className="admin-login-label">
+                Username
+              </label>
               <input
+                id="username"
                 type="text"
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
                 placeholder="Enter your username"
-                className="input-field"
+                className="admin-login-input"
                 required
               />
             </div>
 
-            {/* Password */}
-            <div>
-              <label className="block text-gray-700 font-semibold mb-2">Password</label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="Enter your password"
-                className="input-field"
-                required
-              />
-            </div>
-
-            {/* Admin Code (only in register mode) */}
-            {showRegister && (
-              <div>
-                <label className="block text-gray-700 font-semibold mb-2">Admin Code</label>
+            <div className="admin-login-group">
+              <label htmlFor="password" className="admin-login-label">
+                Password
+              </label>
+              <div className="admin-login-input-row">
                 <input
-                  type="password"
-                  name="adminCode"
-                  value={formData.adminCode}
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  value={formData.password}
                   onChange={handleChange}
-                  placeholder="Enter admin code"
-                  className="input-field"
+                  placeholder="Enter your password"
+                  className="admin-login-input"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  🔐 Admin code is required to create an admin account
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="admin-login-visibility-btn"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
+            </div>
+
+            {showRegister && (
+              <div className="admin-login-group">
+                <label htmlFor="adminCode" className="admin-login-label">
+                  Admin Code
+                </label>
+                <div className="admin-login-input-row">
+                  <input
+                    id="adminCode"
+                    type={showAdminCode ? 'text' : 'password'}
+                    name="adminCode"
+                    value={formData.adminCode}
+                    onChange={handleChange}
+                    placeholder="Enter admin registration code"
+                    className="admin-login-input"
+                    required={showRegister}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAdminCode(!showAdminCode)}
+                    className="admin-login-visibility-btn"
+                    aria-label={showAdminCode ? 'Hide admin code' : 'Show admin code'}
+                  >
+                    {showAdminCode ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                <p className="admin-login-helper">
+                  Contact your administrator for the registration code.
                 </p>
               </div>
             )}
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full font-semibold py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="admin-login-submit"
             >
-              {loading ? '⏳ Processing...' : showRegister ? '✓ Create Account' : '📝 Login'}
+              {loading
+                ? showRegister
+                  ? 'Creating Account...'
+                  : 'Signing In...'
+                : showRegister
+                  ? 'Create Account'
+                  : 'Sign In'}
             </button>
           </form>
 
-          {/* Toggle between login and register */}
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-center text-gray-600">
-              {showRegister ? "Already have an account? " : "New admin user? "}
-              <button
-                onClick={() => {
-                  setShowRegister(!showRegister);
-                  setError('');
-                  setFormData({ username: '', password: '', adminCode: '' });
-                }}
-                className="text-blue-600 hover:text-blue-800 font-semibold"
-              >
-                {showRegister ? 'Login' : 'Register'}
-              </button>
-            </p>
-          </div>
-
-          {/* Demo info */}
-          {!showRegister && (
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg text-xs text-gray-600">
-              <p className="font-semibold mb-2">🆓 Demo Instructions:</p>
-              <p>• New users can register a new admin account</p>
-              <p>• Choose a username and password (min. 6 characters)</p>
-              <p>• Enter the admin code to verify registration</p>
-              <p>• Login to access the dashboard</p>
-            </div>
-          )}
-
-          {/* Registration Info */}
-          {showRegister && (
-            <div className="mt-6 p-4 bg-orange-50 rounded-lg text-xs text-gray-600">
-              <p className="font-semibold mb-2">🔐 Admin Code Required:</p>
-              <p>• Admin code is required to create an admin account</p>
-              <p>• This prevents unauthorized admin registration</p>
-              <p>• Contact your system administrator if you don't have the code</p>
-            </div>
-          )}
+          <p className="admin-login-footer">
+            {showRegister ? 'Already have an account?' : 'New admin user?'}{' '}
+            <button
+              type="button"
+              onClick={() => {
+                setShowRegister(!showRegister);
+                setError('');
+                setFormData({ username: '', password: '', adminCode: '' });
+              }}
+              className="admin-login-toggle"
+            >
+              {showRegister ? 'Sign In' : 'Register'}
+            </button>
+          </p>
         </div>
       </div>
     </div>

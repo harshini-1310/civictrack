@@ -5,12 +5,13 @@ const TEMPLATE_SUBMITTED = import.meta.env.VITE_EMAILJS_TEMPLATE_SUBMITTED;
 const TEMPLATE_RESOLVED = import.meta.env.VITE_EMAILJS_TEMPLATE_RESOLVED;
 const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
-console.info('📧 EmailJS Configuration:', {
-  SERVICE_ID,
-  TEMPLATE_SUBMITTED,
-  TEMPLATE_RESOLVED,
-  PUBLIC_KEY: PUBLIC_KEY ? '✅ Present' : '❌ Missing',
-});
+const toCleanString = (value) => {
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  return String(value).trim();
+};
 
 /**
  * Generic email sender function
@@ -63,11 +64,12 @@ export async function sendEmail(templateId, params) {
 export async function sendComplaintSubmission({
   to_email,
   complaintId,
+  complaint_id,
   name = 'Valued Citizen',
   category = '',
 }) {
-  const email = to_email?.trim?.()?.toLowerCase?.();
-  const id = complaintId?.trim?.();
+  const email = toCleanString(to_email).toLowerCase();
+  const id = toCleanString(complaintId || complaint_id);
 
   if (!email) {
     console.warn('⚠️ sendComplaintSubmission: Email address is missing');
@@ -84,11 +86,33 @@ export async function sendComplaintSubmission({
     return { success: false, message: 'Email template not configured' };
   }
 
+  const normalizedCategory = toCleanString(category) || 'General';
+  const submittedTimestamp = new Date().toLocaleString();
+
+  // Include both camelCase and snake_case keys for template compatibility.
   const params = {
     to_email: email,
+    email,
+    id,
     complaintId: id,
+    complaintID: id,
+    complaint_id: id,
+    complaintid: id,
+    ticket_id: id,
+    ticketId: id,
+    tracking_id: id,
+    trackingId: id,
+    reference_id: id,
+    referenceId: id,
+    complaint_ref: id,
+    complaint_reference: id,
     name: name?.trim() || 'Valued Citizen',
-    category: category?.trim?.() || 'General',
+    category: normalizedCategory,
+    complaint_category: normalizedCategory,
+    issue_category: normalizedCategory,
+    issue: normalizedCategory,
+    timestamp: submittedTimestamp,
+    submitted_at: submittedTimestamp,
   };
 
   console.info('📨 Sending complaint submission email with params:', params);
@@ -100,6 +124,7 @@ export async function sendComplaintSubmission({
  * @param {Object} params
  * @param {string} params.to_email - Recipient email address
  * @param {string} params.complaintId - Complaint ID (CIV-XXXXXX)
+ * @param {string} params.category - Complaint category (optional)
  * @param {string} params.issue - Issue/complaint description
  * @param {string} params.resolution - Resolution details (optional)
  * @returns {Promise<{success:boolean,message:string,error?:Error}>}
@@ -107,12 +132,14 @@ export async function sendComplaintSubmission({
 export async function sendComplaintResolution({
   to_email,
   complaintId,
+  complaint_id,
+  category = '',
   issue,
   resolution = '',
 }) {
-  const email = to_email?.trim?.()?.toLowerCase?.();
-  const id = complaintId?.trim?.();
-  const description = issue?.trim?.();
+  const email = toCleanString(to_email).toLowerCase();
+  const id = toCleanString(complaintId || complaint_id);
+  const description = toCleanString(issue);
 
   if (!email) {
     console.warn('⚠️ sendComplaintResolution: Email address is missing');
@@ -134,11 +161,37 @@ export async function sendComplaintResolution({
     return { success: false, message: 'Email template not configured' };
   }
 
+  const normalizedCategory = toCleanString(category) || 'General';
+  const normalizedResolution = toCleanString(resolution) || 'Your complaint has been resolved';
+  const resolvedTimestamp = new Date().toLocaleString();
+
   const params = {
     to_email: email,
+    email,
+    id,
     complaintId: id,
+    complaintID: id,
+    complaint_id: id,
+    complaintid: id,
+    ticket_id: id,
+    ticketId: id,
+    tracking_id: id,
+    trackingId: id,
+    reference_id: id,
+    referenceId: id,
+    complaint_ref: id,
+    complaint_reference: id,
+    category: normalizedCategory,
+    complaint_category: normalizedCategory,
+    issue_category: normalizedCategory,
     issue: description,
-    resolution: resolution?.trim?.() || 'Your complaint has been resolved',
+    issue_description: description,
+    description,
+    resolution: normalizedResolution,
+    resolution_notes: normalizedResolution,
+    resolved_at: resolvedTimestamp,
+    timestamp: resolvedTimestamp,
+    submitted_at: resolvedTimestamp,
   };
 
   console.info('📨 Sending complaint resolution email with params:', params);

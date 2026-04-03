@@ -1,29 +1,18 @@
 import { useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
+import {
+  Search, CheckCircle, Clock, AlertCircle, Edit3, Save, X,
+  MapPin, Tag, AlertTriangle, Calendar, FileText, Loader2, Info
+} from 'lucide-react';
 import axiosClient from '../services/axiosClient';
+import './TrackStatus.css';
 
 const categories = [
-  'Roads & Potholes',
-  'Drainage & Sewage',
-  'Street Lighting',
-  'Public Buildings',
-  'Electricity Issues',
-  'Water Supply',
-  'Garbage Collection',
-  'Internet / Cable',
-  'Traffic Signals',
-  'Illegal Parking',
-  'Accidents / Hazards',
-  'Fire Safety',
-  'Air Pollution',
-  'Water Pollution',
-  'Noise Pollution',
-  'Tree Damage',
-  'Hospitals',
-  'Schools',
-  'Government Offices',
-  'Public Transport',
-  'Miscellaneous',
+  'Roads & Potholes', 'Drainage & Sewage', 'Street Lighting', 'Public Buildings',
+  'Electricity Issues', 'Water Supply', 'Garbage Collection', 'Internet / Cable',
+  'Traffic Signals', 'Illegal Parking', 'Accidents / Hazards', 'Fire Safety',
+  'Air Pollution', 'Water Pollution', 'Noise Pollution', 'Tree Damage',
+  'Hospitals', 'Schools', 'Government Offices', 'Public Transport', 'Miscellaneous',
 ];
 
 export default function TrackStatus() {
@@ -99,10 +88,9 @@ export default function TrackStatus() {
       if (response.data.success) {
         setComplaint(response.data.data);
         setIsEditMode(false);
-        alert('✅ Complaint updated successfully!');
       }
     } catch (err) {
-      alert('❌ Failed to update complaint: ' + (err.response?.data?.message || err.message));
+      alert('Failed to update complaint: ' + (err.response?.data?.message || err.message));
     } finally {
       setIsSaving(false);
     }
@@ -113,29 +101,38 @@ export default function TrackStatus() {
     setEditData({});
   };
 
-  const getStatusColor = (status) => {
+  const getStatusConfig = (status) => {
     switch (status) {
       case 'Resolved':
-        return 'bg-green-100 text-green-800 border-green-300';
+        return {
+          icon: CheckCircle,
+          color: 'resolved',
+        };
       case 'Pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+        return {
+          icon: Clock,
+          color: 'pending',
+        };
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-300';
+        return {
+          icon: AlertCircle,
+          color: 'default',
+        };
     }
   };
 
-  const getSeverityColor = (severity) => {
+  const getSeverityConfig = (severity) => {
     switch (severity) {
       case 'Emergency':
-        return 'bg-red-100 text-red-800 border-red-300';
+        return { color: 'red', icon: '🚨' };
       case 'High':
-        return 'bg-orange-100 text-orange-800 border-orange-300';
+        return { color: 'orange', icon: '🔴' };
       case 'Medium':
-        return 'bg-blue-100 text-blue-800 border-blue-300';
+        return { color: 'amber', icon: '🟡' };
       case 'Low':
-        return 'bg-green-100 text-green-800 border-green-300';
+        return { color: 'emerald', icon: '🟢' };
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-300';
+        return { color: 'slate', icon: '⚪' };
     }
   };
 
@@ -149,226 +146,376 @@ export default function TrackStatus() {
     });
   };
 
+  const statusConfig = complaint ? getStatusConfig(complaint.status) : null;
+  const severityConfig = complaint ? getSeverityConfig(complaint.severity) : null;
+  const statusClass = complaint ? `ts-status-${statusConfig.color}` : '';
+  const severityClass = complaint ? `ts-severity-${severityConfig.color}` : '';
+
   return (
-    <div className="flex flex-col bg-gray-50 min-h-screen w-full">
-      <div className="flex-1 w-full px-4 md:px-6 py-8">
-        <div className="w-full mx-auto space-y-8 max-w-2xl">
-          {/* Page Header */}
-          <div className="text-center">
-            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-2">
-              Track<span className="text-blue-600">Status</span>
+    <div className="track-status-page relative min-h-screen overflow-hidden">
+
+      {/* Hero Section */}
+      <section className="relative overflow-hidden text-white min-h-[calc(100vh-4rem)] flex items-center py-10 md:py-14 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+        {/* Hero background decorations */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" />
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" style={{ animationDelay: '2s' }} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10" />
+        </div>
+
+        <div
+          className="absolute inset-0 opacity-5 pointer-events-none"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }}
+        />
+        {/* Background decoration */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-white rounded-full mix-blend-multiply filter blur-3xl opacity-10" />
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-10" />
+        </div>
+
+        <div className="relative page-container flex justify-center lg:translate-x-28">
+          <Motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="ts-hero-panel"
+          >
+            <div className="ts-hero-chip">
+              <Search size={20} />
+              <span>Track Your Complaint</span>
+            </div>
+
+            <h1 className="ts-hero-title">
+              Track Status
             </h1>
-            <p className="text-lg text-gray-600">
-              Enter your complaint ID to check the status
+            <p className="ts-hero-subtitle">
+              Enter your complaint ID to check the current status of your reported issue
             </p>
-          </div>
 
-          {/* Search Form */}
-          <div className="bg-white rounded-xl shadow-md p-6 md:p-8">
-            <form onSubmit={handleSearch} className="space-y-4">
-              <div>
-                <label className="block text-gray-700 font-medium mb-2">
-                  Complaint ID <span className="text-red-500">*</span>
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={complaintId}
-                    onChange={(e) => setComplaintId(e.target.value)}
-                    placeholder="Paste your complaint ID here"
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? 'Searching...' : 'Search'}
-                  </button>
-                </div>
+            {/* Search Form */}
+            <Motion.form
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              onSubmit={handleSearch}
+              className="ts-hero-form"
+            >
+              <div className="ts-hero-search-shell">
+                <input
+                  type="text"
+                  value={complaintId}
+                  onChange={(e) => setComplaintId(e.target.value)}
+                  placeholder="Enter your complaint ID"
+                  className="ts-admin-input ts-hero-search-input"
+                />
+                <Motion.button
+                  type="submit"
+                  disabled={loading}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="ts-admin-btn ts-admin-btn-primary ts-hero-search-btn"
+                >
+                  {loading ? (
+                    <Loader2 size={20} className="animate-spin" />
+                  ) : (
+                    <Search size={20} />
+                  )}
+                  <span>{loading ? 'Searching...' : 'Search'}</span>
+                </Motion.button>
               </div>
-            </form>
+            </Motion.form>
+          </Motion.div>
+        </div>
 
+        {/* Wave */}
+        <div className="absolute bottom-0 left-0 right-0">
+          <svg className="w-full h-20 md:h-28" preserveAspectRatio="none" viewBox="0 0 1200 120">
+            <path
+              d="M0,45 C150,125 300,-10 500,55 C700,120 900,-5 1200,70 L1200,120 L0,120 Z"
+              className="fill-slate-50"
+            />
+          </svg>
+        </div>
+      </section>
+
+      {/* Results Section */}
+      <section className="section relative overflow-hidden pt-8 md:pt-12 bg-gradient-to-b from-slate-50 via-white to-slate-100">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -top-20 -left-16 h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl" />
+          <div className="absolute -bottom-20 -right-10 h-72 w-72 rounded-full bg-indigo-300/20 blur-3xl" />
+        </div>
+        <div className="relative page-container max-w-4xl mx-auto lg:translate-x-6">
+          {/* Error Message */}
+          <AnimatePresence>
             {error && (
-              <div className="mt-6 p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg text-sm font-medium">
-                ⚠️ {error}
-              </div>
-            )}
-
-            {complaint && (
-              <div className="mt-8 space-y-6 border-t border-gray-200 pt-8">
-                {/* Status Header */}
-                <div className="text-center pb-6 border-b border-gray-200">
-                  <p className="text-gray-600 text-sm mb-3">Current Status</p>
-                  <div className={`inline-block px-6 py-3 rounded-full border-2 font-bold text-lg ${getStatusColor(complaint.status)}`}>
-                    {complaint.status === 'Resolved' ? '✅' : '⏳'} {complaint.status}
-                  </div>
+              <Motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="alert alert-error p-6"
+              >
+                <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
+                  <AlertCircle size={24} className="text-red-500" />
                 </div>
+                <div>
+                  <h3 className="font-bold text-red-800 mb-1">Complaint Not Found</h3>
+                  <p className="text-red-600">{error}</p>
+                </div>
+              </Motion.div>
+            )}
+          </AnimatePresence>
 
-                {/* Edit/View Toggle */}
-                {!isEditMode && complaint.status === 'Pending' && (
-                  <button
-                    onClick={handleEditClick}
-                    className="w-full bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold py-2 px-4 rounded-lg transition"
-                  >
-                    ✏️ Edit Details
-                  </button>
-                )}
-
-                {isEditMode ? (
-                  // Edit Form
-                  <div className="space-y-4 bg-blue-50 p-6 rounded-lg border border-blue-200">
-                    <h3 className="font-bold text-gray-900 mb-4">📝 Modify Complaint Details</h3>
-
-                    {/* Description */}
+          {/* Complaint Result */}
+          <AnimatePresence>
+            {complaint && (
+              <Motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="track-result-stack ts-admin-stack"
+              >
+                {/* Status Card */}
+                <div className={`ts-admin-status-card ${statusClass}`}>
+                  <div className="ts-admin-status-row">
                     <div>
-                      <label className="block text-gray-700 font-medium mb-2">
-                        Description <span className="text-red-500">*</span>
-                      </label>
-                      <textarea
-                        value={editData.description}
-                        onChange={(e) => handleEditChange('description', e.target.value)}
-                        rows="4"
-                        maxLength="1000"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">{editData.description?.length || 0}/1000 characters</p>
+                      <p className="ts-admin-status-label">Current Status</p>
+                      <h2 className="ts-admin-status-value">
+                        <statusConfig.icon size={20} />
+                        <span>{complaint.status}</span>
+                      </h2>
                     </div>
-
-                    {/* Category */}
-                    <div>
-                      <label className="block text-gray-700 font-medium mb-2">Category</label>
-                      <select
-                        value={editData.category}
-                        onChange={(e) => handleEditChange('category', e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        {categories.map(cat => (
-                          <option key={cat} value={cat}>{cat}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Severity */}
-                    <div>
-                      <label className="block text-gray-700 font-medium mb-2">Severity</label>
-                      <select
-                        value={editData.severity}
-                        onChange={(e) => handleEditChange('severity', e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="Low">🟢 Low</option>
-                        <option value="Medium">🟡 Medium</option>
-                        <option value="High">🔴 High</option>
-                        <option value="Emergency">🚨 Emergency</option>
-                      </select>
-                    </div>
-
-                    {/* Location */}
-                    <div>
-                      <label className="block text-gray-700 font-medium mb-2">
-                        Location <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={editData.location}
-                        onChange={(e) => handleEditChange('location', e.target.value)}
-                        placeholder="Enter location"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    {/* Save/Cancel Buttons */}
-                    <div className="flex gap-3 pt-4 border-t border-blue-300">
+                    {complaint.status === 'Pending' && !isEditMode && (
                       <button
-                        onClick={handleSaveChanges}
-                        disabled={isSaving}
-                        className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition disabled:opacity-50"
+                        onClick={handleEditClick}
+                        className="ts-admin-btn ts-admin-btn-primary"
                       >
-                        {isSaving ? '⏳ Saving...' : '✓ Save Changes'}
+                        <Edit3 size={16} />
+                        Edit Details
                       </button>
-                      <button
-                        onClick={handleCancel}
-                        className="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg transition"
-                      >
-                        ✕ Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  // View Mode
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Description (Full width) */}
-                    <div className="md:col-span-2">
-                      <h3 className="text-sm font-semibold text-gray-600 mb-2">Description</h3>
-                      <p className="text-gray-900 text-base leading-relaxed">{complaint.description}</p>
-                    </div>
-
-                    {/* Category */}
-                    <div>
-                      <h3 className="text-sm font-semibold text-gray-600 mb-2">Category</h3>
-                      <p className="text-gray-900">{complaint.category}</p>
-                    </div>
-
-                    {/* Severity */}
-                    <div>
-                      <h3 className="text-sm font-semibold text-gray-600 mb-2">Severity</h3>
-                      <div className={`inline-block px-4 py-2 rounded-lg border-2 font-semibold text-sm ${getSeverityColor(complaint.severity)}`}>
-                        {complaint.severity}
-                      </div>
-                    </div>
-
-                    {/* Location */}
-                    <div>
-                      <h3 className="text-sm font-semibold text-gray-600 mb-2">Location</h3>
-                      <p className="text-gray-900">{complaint.location}</p>
-                    </div>
-
-                    {/* Submitted Date */}
-                    <div>
-                      <h3 className="text-sm font-semibold text-gray-600 mb-2">Submitted On</h3>
-                      <p className="text-gray-900">{formatDate(complaint.createdAt)}</p>
-                    </div>
-
-                    {/* Resolution Notes (if resolved) */}
-                    {complaint.status === 'Resolved' && complaint.resolutionNotes && (
-                      <div className="md:col-span-2">
-                        <h3 className="text-sm font-semibold text-gray-600 mb-2">Resolution Notes</h3>
-                        <div className="bg-green-50 p-4 rounded border border-green-200 text-gray-900">
-                          {complaint.resolutionNotes}
-                        </div>
-                      </div>
                     )}
                   </div>
-                )}
-              </div>
-            )}
+                </div>
 
-            {!complaint && !error && complaintId && !loading && (
-              <div className="mt-8 p-4 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg text-sm">
-                Enter your complaint ID and click Search to track your complaint.
-              </div>
+                {/* Details Card */}
+                <div className="ts-admin-details-card">
+                  {isEditMode ? (
+                    <Motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="ts-admin-edit-wrap"
+                    >
+                      <h3 className="ts-admin-section-title">Edit Details</h3>
+
+                      <div className="ts-admin-form-grid">
+                        <div className="ts-admin-field">
+                          <label className="ts-admin-field-label">Description</label>
+                          <textarea
+                            value={editData.description}
+                            onChange={(e) => handleEditChange('description', e.target.value)}
+                            rows="4"
+                            maxLength="1000"
+                            className="ts-admin-input ts-admin-textarea"
+                          />
+                          <p className="ts-admin-counter">{editData.description?.length || 0}/1000</p>
+                        </div>
+
+                        <div className="ts-admin-two-cols">
+                          <div className="ts-admin-field">
+                            <label className="ts-admin-field-label">Category</label>
+                            <select
+                              value={editData.category}
+                              onChange={(e) => handleEditChange('category', e.target.value)}
+                              className="ts-admin-input ts-admin-select"
+                            >
+                              {categories.map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="ts-admin-field">
+                            <label className="ts-admin-field-label">Severity</label>
+                            <select
+                              value={editData.severity}
+                              onChange={(e) => handleEditChange('severity', e.target.value)}
+                              className="ts-admin-input ts-admin-select"
+                            >
+                              <option value="Low">🟢 Low</option>
+                              <option value="Medium">🟡 Medium</option>
+                              <option value="High">🔴 High</option>
+                              <option value="Emergency">🚨 Emergency</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="ts-admin-field">
+                          <label className="ts-admin-field-label">Location</label>
+                          <input
+                            type="text"
+                            value={editData.location}
+                            onChange={(e) => handleEditChange('location', e.target.value)}
+                            className="ts-admin-input"
+                          />
+                        </div>
+
+                        <div className="ts-admin-actions">
+                          <button
+                            onClick={handleSaveChanges}
+                            disabled={isSaving}
+                            className="ts-admin-btn ts-admin-btn-primary ts-admin-btn-full"
+                          >
+                            {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                            {isSaving ? 'Saving...' : 'Save Changes'}
+                          </button>
+                          <button
+                            onClick={handleCancel}
+                            className="ts-admin-btn ts-admin-btn-outline"
+                          >
+                            <X size={18} />
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </Motion.div>
+                  ) : (
+                    <div className="ts-admin-view-wrap">
+                      <div className="ts-admin-field">
+                        <h4>Description</h4>
+                        <p>{complaint.description}</p>
+                      </div>
+
+                      <div className="ts-admin-two-cols">
+                        <div className="ts-admin-field">
+                          <h4>Category</h4>
+                          <p>{complaint.category}</p>
+                        </div>
+
+                        <div className="ts-admin-field">
+                          <h4>Severity</h4>
+                          <p className={`ts-admin-pill ${severityClass}`}>
+                            {severityConfig.icon} {complaint.severity}
+                          </p>
+                        </div>
+
+                        <div className="ts-admin-field">
+                          <h4>Location</h4>
+                          <p>{complaint.location}</p>
+                        </div>
+
+                        <div className="ts-admin-field">
+                          <h4>Submitted</h4>
+                          <p>{formatDate(complaint.createdAt)}</p>
+                        </div>
+                      </div>
+
+                      {/* Resolution Notes */}
+                      {complaint.status === 'Resolved' && complaint.resolutionNotes && (
+                        <div className="ts-admin-resolution">
+                          <div className="ts-admin-resolution-title">
+                            <CheckCircle size={16} />
+                            Resolution Notes
+                          </div>
+                          <p>{complaint.resolutionNotes}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </Motion.div>
             )}
-          </div>
+          </AnimatePresence>
 
           {/* Help Section */}
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 md:p-8">
-            <h3 className="font-semibold text-gray-900 mb-3">💡 Where is my Complaint ID?</h3>
-            <ul className="space-y-2 text-gray-700 text-sm">
-              <li>✓ You received it when your complaint was submitted successfully</li>
-              <li>✓ It appears in the success message on the Report Issue page</li>
-              <li>✓ Copy and paste it here to track your complaint status anytime</li>
-            </ul>
+          {!complaint && !error && (
+            <Motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="track-help-section mt-3"
+            >
+              <div className="track-help-header flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
+                    <Info size={22} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900">Need Help?</h3>
+                    <p className="text-sm text-slate-600">Here's how to find and use your complaint ID</p>
+                  </div>
+                </div>
+                <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                  Quick Guide
+                </span>
+              </div>
 
-            <h3 className="font-semibold text-gray-900 mb-3 mt-5">✏️ Need to modify your complaint?</h3>
-            <ul className="space-y-2 text-gray-700 text-sm">
-              <li>✓ You can edit your complaint details if it's still pending</li>
-              <li>✓ Click the "Edit Details" button to modify description, category, severity, or location</li>
-              <li>✓ Once your complaint is resolved, editing will not be available</li>
-            </ul>
-          </div>
+              <div className="track-help-grid mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
+                <Motion.article
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.35 }}
+                  className="track-help-card track-help-card-id"
+                >
+                  <div className="track-help-card-bg" />
+                  <div className="track-help-card-blob" />
+                  <div className="track-help-card-content">
+                    <div className="mb-4 flex items-start gap-3">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold text-white">?</span>
+                      <h4 className="text-base font-semibold text-emerald-900">Where is my Complaint ID?</h4>
+                    </div>
+                    <ul className="space-y-3">
+                      <li className="flex items-start gap-2 text-sm text-slate-700">
+                        <CheckCircle size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                        <span>You received it when your complaint was submitted</span>
+                      </li>
+                      <li className="flex items-start gap-2 text-sm text-slate-700">
+                        <CheckCircle size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                        <span>Check your email confirmation</span>
+                      </li>
+                      <li className="flex items-start gap-2 text-sm text-slate-700">
+                        <CheckCircle size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                        <span>It was shown in the success message</span>
+                      </li>
+                    </ul>
+                  </div>
+                </Motion.article>
+
+                <Motion.article
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.4 }}
+                  className="track-help-card track-help-card-edit"
+                >
+                  <div className="track-help-card-bg" />
+                  <div className="track-help-card-blob" />
+                  <div className="track-help-card-content">
+                    <div className="mb-4 flex items-start gap-3">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500 text-sm font-bold text-white">!</span>
+                      <h4 className="text-base font-semibold text-amber-900">Can I modify my complaint?</h4>
+                    </div>
+                    <ul className="space-y-3">
+                      <li className="flex items-start gap-2 text-sm text-slate-700">
+                        <CheckCircle size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                        <span>Edit details while status is "Pending"</span>
+                      </li>
+                      <li className="flex items-start gap-2 text-sm text-slate-700">
+                        <CheckCircle size={16} className="mt-0.5 shrink-0 text-emerald-500" />
+                        <span>Update description, category, severity, or location</span>
+                      </li>
+                      <li className="flex items-start gap-2 text-sm text-slate-700">
+                        <AlertCircle size={16} className="mt-0.5 shrink-0 text-amber-500" />
+                        <span>Editing is disabled once resolved</span>
+                      </li>
+                    </ul>
+                  </div>
+                </Motion.article>
+              </div>
+            </Motion.div>
+          )}
         </div>
-      </div>
+      </section>
     </div>
   );
 }
+
