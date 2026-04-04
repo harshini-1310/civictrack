@@ -18,6 +18,7 @@ const asyncHandler = (fn) => (req, res, next) => {
 
 // Initialize Express app
 const app = express();
+app.use(cors());
 
 const parseAllowedOrigins = (rawOrigins = '') =>
   rawOrigins
