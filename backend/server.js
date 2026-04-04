@@ -18,42 +18,9 @@ const asyncHandler = (fn) => (req, res, next) => {
 
 // Initialize Express app
 const app = express();
-app.use(cors());
-
-const parseAllowedOrigins = (rawOrigins = '') =>
-  rawOrigins
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-
-const allowedOrigins = parseAllowedOrigins(process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || '');
-
-const corsOptions = {
-  origin: (origin, callback) => {
-    if (!origin) {
-      return callback(null, true);
-    }
-
-    if (allowedOrigins.length === 0) {
-      const isProduction = (process.env.NODE_ENV || '').toLowerCase() === 'production';
-      if (!isProduction) {
-        return callback(null, true);
-      }
-
-      return callback(new Error('CORS blocked: origin is not allowlisted'));
-    }
-
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-
-    return callback(new Error('CORS blocked: origin is not allowlisted'));
-  },
-  credentials: true,
-};
 
 // Middleware
-app.use(cors(corsOptions));
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
