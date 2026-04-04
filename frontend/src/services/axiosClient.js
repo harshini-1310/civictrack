@@ -56,12 +56,29 @@ const axiosClient = axios.create({
   },
 });
 
-// Add token to requests (include Authorization header for all API requests)
+// Add token to requests (only for protected endpoints)
 axiosClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // List of public endpoints that don't require authentication
+    const publicEndpoints = [
+      '/complaints/',          // POST - create public complaint
+      '/complaints/track',     // GET - track complaint status
+      '/complaints/update',    // PUT - update complaint details
+      '/auth/register',        // POST - admin registration
+    ];
+
+    // Check if this is a public endpoint
+    const isPublicEndpoint = publicEndpoints.some(endpoint => {
+      // Handle both exact matches and prefix matches
+      return config.url.includes(endpoint) || config.url === endpoint.slice(0, -1);
+    });
+
+    // Only add token for protected endpoints
+    if (!isPublicEndpoint) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
 
     // Don't override Content-Type for FormData - let axios/browser handle it
