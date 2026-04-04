@@ -56,10 +56,10 @@ const axiosClient = axios.create({
   },
 });
 
-// Add token to requests
+// Add token to requests (include Authorization header for all API requests)
 axiosClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('adminToken');
+    const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -82,12 +82,22 @@ axiosClient.interceptors.response.use(
     const isAuthRequest = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/register');
 
     if (error.response?.status === 401 && !isAuthRequest) {
-      localStorage.removeItem('adminToken');
+      localStorage.removeItem('token');
       window.location.href = '/admin-login';
     }
 
+    // Improve error handling - log actual backend response
     if (!error.response) {
+      // Network error or timeout
+      console.error('Network error:', error.message);
       error.message = 'Unable to connect to backend server. Ensure backend is running and API URL is configured correctly.';
+    } else {
+      // Backend returned an error response
+      console.error('Backend error response:', {
+        status: error.response.status,
+        data: error.response.data,
+        message: error.response.data?.message,
+      });
     }
 
     return Promise.reject(error);

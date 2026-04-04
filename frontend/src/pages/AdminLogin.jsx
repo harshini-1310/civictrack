@@ -33,7 +33,7 @@ export default function AdminLogin() {
       const response = await axiosClient.post('/auth/login', formData);
 
       if (response.data.success) {
-        localStorage.setItem('adminToken', response.data.token);
+        localStorage.setItem('token', response.data.token);
         localStorage.setItem('adminUsername', response.data.admin.username);
         navigate('/admin-dashboard');
       }
@@ -53,7 +53,7 @@ export default function AdminLogin() {
       const response = await axiosClient.post('/auth/register', formData);
 
       if (response.data.success) {
-        localStorage.setItem('adminToken', response.data.token);
+        localStorage.setItem('token', response.data.token);
         localStorage.setItem('adminUsername', response.data.admin.username);
         navigate('/admin-dashboard');
       }
