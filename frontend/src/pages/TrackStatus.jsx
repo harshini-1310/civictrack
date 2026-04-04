@@ -78,7 +78,7 @@ export default function TrackStatus() {
 
     setIsSaving(true);
     try {
-      const response = await axiosClient.put(`/complaints/${complaint._id}`, {
+      const response = await axiosClient.put(`/complaints/update/${complaint.complaintId}`, {
         description: editData.description,
         category: editData.category,
         severity: editData.severity,

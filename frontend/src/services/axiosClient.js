@@ -18,7 +18,11 @@ const normalizeApiUrl = (rawUrl) => {
 
   // Support host-based values without protocol.
   if (!value.startsWith('http://') && !value.startsWith('https://') && !value.startsWith('/')) {
-    return `http://${value}`;
+    if (typeof window !== 'undefined') {
+      return `${window.location.protocol}//${value}`;
+    }
+
+    return `https://${value}`;
   }
 
   return value;

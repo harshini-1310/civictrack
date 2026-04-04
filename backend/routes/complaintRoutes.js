@@ -7,6 +7,7 @@ const {
   getAllComplaints,
   getComplaintById,
   updateComplaintStatus,
+  updateComplaintDetails,
   deleteComplaint,
 } = require('../controllers/complaintController');
 const { protect } = require('../middleware/auth');
@@ -48,6 +49,7 @@ const asyncHandler = (fn) => (req, res, next) => {
 // Public routes
 router.post('/', upload.single('file'), asyncHandler(createComplaint));
 router.get('/track/:id', asyncHandler(getComplaintById)); // Public - for tracking complaints
+router.put('/update/:complaintId', asyncHandler(updateComplaintDetails)); // Public - for users to update their complaint details
 
 // Protected routes (Admin only)
 router.get('/', protect, asyncHandler(getAllComplaints));

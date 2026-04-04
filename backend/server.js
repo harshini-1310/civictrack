@@ -19,8 +19,40 @@ const asyncHandler = (fn) => (req, res, next) => {
 // Initialize Express app
 const app = express();
 
+const parseAllowedOrigins = (rawOrigins = '') =>
+  rawOrigins
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+const allowedOrigins = parseAllowedOrigins(process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || '');
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.length === 0) {
+      const isProduction = (process.env.NODE_ENV || '').toLowerCase() === 'production';
+      if (!isProduction) {
+        return callback(null, true);
+      }
+
+      return callback(new Error('CORS blocked: origin is not allowlisted'));
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('CORS blocked: origin is not allowlisted'));
+  },
+  credentials: true,
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -37,10 +69,8 @@ if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
   console.warn('⚠️ EMAIL_USER or EMAIL_PASSWORD is not set. Email notifications will fail.');
 }
 
-// Connect to MongoDB (Atlas).
-// Ensure MONGODB_URI is set in backend/.env, example:
-// mongodb+srv://<username>:<password>@cluster0.p0bcu2d.mongodb.net/civictrack?retryWrites=true&w=majority
-const mongodbUri = process.env.MONGODB_URI || 'mongodb+srv://<username>:<password>@cluster0.p0bcu2d.mongodb.net/civictrack?retryWrites=true&w=majority';
+// Connect to MongoDB using the required environment variable.
+const mongodbUri = process.env.MONGODB_URI;
 
 mongoose
   .connect(mongodbUri)

@@ -205,6 +205,56 @@ exports.updateComplaintStatus = async (req, res) => {
 };
 
 /**
+ * @route   PUT /api/complaints/update/:complaintId
+ * @desc    Update complaint details by complaintId (Public - for users to edit their complaint)
+ * @access  Public
+ */
+exports.updateComplaintDetails = async (req, res) => {
+  try {
+    const { complaintId } = req.params;
+    const { description, category, severity, location } = req.body;
+
+    // Validate required fields
+    if (!description || !category || !severity || !location) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide all required fields: description, category, severity, location',
+      });
+    }
+
+    // Find complaint by complaintId (the public ID like CIV-123456)
+    let complaint = await Complaint.findOne({ complaintId: complaintId.trim() });
+
+    if (!complaint) {
+      return res.status(404).json({
+        success: false,
+        message: 'Complaint not found',
+      });
+    }
+
+    // Update fields
+    complaint.description = description.trim();
+    complaint.category = category;
+    complaint.severity = severity;
+    complaint.location = location.trim();
+    complaint.updatedAt = Date.now();
+
+    await complaint.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Complaint updated successfully',
+      data: complaint,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/**
  * @route   DELETE /api/complaints/:id
  * @desc    Delete a complaint (Admin only)
  * @access  Private
